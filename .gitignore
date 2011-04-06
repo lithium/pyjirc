@@ -3,3 +3,4 @@
 env
 pip-log.txt
 build
+local_settings.py

@@ -1,0 +1,15 @@
+
+
+
+JABBER_JID="user@jabber.org/daemon"
+JABBER_PASSWORD=""
+JABBER_SERVER="jabber.org"
+JABBER_PORT=5222
+JABBER_MUC="test2342342@conference.jabber.org"
+
+
+IRC_NICK="jirc"
+IRC_USER="jirc"
+IRC_SERVER="irc.freenode.net"
+IRC_PORT=6667
+IRC_CHANNEL="#test2342342"
