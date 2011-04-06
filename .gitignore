@@ -1,0 +1,5 @@
+.*sw*
+*.pyc
+env
+pip-log.txt
+build
