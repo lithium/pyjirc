@@ -18,12 +18,12 @@ class AsyncIrcClient(asynchat.async_chat):
         self.password = password
         self.buffer = StringIO.StringIO()
 
+    def open(self):
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connect( (self.host, self.port) )
-
         self.set_terminator("\r\n")
 
-        if password:
+        if self.password:
             self.output("PASS", self.password)
         self.output("NICK", self.nick)
         self.output("USER", self.user, '*', '*', ':'+self.user)
@@ -46,7 +46,9 @@ class AsyncIrcClient(asynchat.async_chat):
 
 
     def output(self, *args):
-        self.push(' '.join(args)+"\r\n")
+        out = ' '.join(args)+"\r\n"
+        logging.info(out)
+        self.push(out)
 
     def tick(self, timeout=1):
         asyncore.loop(timeout=timeout, count=1)
@@ -72,3 +74,5 @@ class AsyncIrcClient(asynchat.async_chat):
             args = s.split()
         command = args.pop(0)
         return prefix, command, args
+
+
