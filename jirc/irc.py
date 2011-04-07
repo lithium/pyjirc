@@ -12,11 +12,11 @@ class JircIrcClient(AsyncIrcClient, HasHandlerMixin):
 
         if self.handler:
             self.handler.post(Message("IRC_CHANNEL_MESSAGE", subject=target, sender=prefix, body=line))
-        #self.output("PRIVMSG", target, ":<%s> %s" % (prefix, line))
 
     def handle_266(self, prefix, cmd, args):
         #end of LUSERS command
         self.handler.post(Message("IRC_CONNECT"))
 
     def send_to_channel(self, channel, message):
+        message = message.encode('ascii','xmlcharrefreplace')
         self.output("PRIVMSG", channel, ':'+message)

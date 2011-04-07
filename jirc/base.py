@@ -52,8 +52,6 @@ class Jirc(object):
             if chan is not None:
                 self.jic.send_to_channel(chan, '<%s> %s' % (msg.sender, msg.body))
 
-            self.jic.send_to_channel('#jirc', 'wtf')
-
         if msg.what == 'IRC_CONNECT':
             for channel in self.settings.CHANNELS:
                 chan = channel['irc']
