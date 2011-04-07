@@ -31,7 +31,7 @@ class Jirc(object):
     def tick(self):
         self.jjc.tick()
         self.jic.tick()
-        self.handler.tick(block=True, timeout=0.2)
+        self.handler.tick(block=False)
         return True
 
     def disconnect(self):

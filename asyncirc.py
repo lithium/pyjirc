@@ -38,7 +38,7 @@ class AsyncIrcClient(asynchat.async_chat):
         
         prefix, command, args = self._parse_msg(line)
 
-        logging.debug(":AsyncIrc: %s" % ((prefix,command,args),) )
+        logging.debug(":AsyncIrc:IN: %s" % ((prefix,command,args),) )
 
         handler = getattr(self, 'handle_%s' % (command.lower(),), None)
         if handler is not None and callable(handler):
@@ -46,9 +46,9 @@ class AsyncIrcClient(asynchat.async_chat):
 
 
     def output(self, *args):
-        out = ' '.join(args)+"\r\n"
-        logging.info(out)
-        self.push(out)
+        out = ' '.join(args)
+        logging.debug(":AsyncIrc:OUT: %s" %(out,))
+        self.push(out+"\r\n")
 
     def tick(self, timeout=1):
         asyncore.loop(timeout=timeout, count=1)
