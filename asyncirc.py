@@ -75,4 +75,7 @@ class AsyncIrcClient(asynchat.async_chat):
         command = args.pop(0)
         return prefix, command, args
 
+    def handle_ping(self, prefix, cmd, args):
+        self.output("PONG", ':'+args[0])
+
 

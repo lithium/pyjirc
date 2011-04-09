@@ -4,6 +4,9 @@ from jirc.jabber import JircJabberClient
 
 from handler import Handler, Message
 
+from objdict import ObjDict
+import re
+
 import logging
 
 __all__ = ['Jirc']
@@ -13,6 +16,12 @@ class Jirc(object):
     def __init__(self, settings):
         self.handler = Handler(self.handle_message)
         self.settings = settings
+        self.state = ObjDict({
+            'irc_format': '<%(resource)s%%xmpp> ',
+            'jabber_format': '<%(nick)s%%irc> ',
+        })
+        self._irc_sender_re = re.compile("(?P<nick>[^!]+)!(?P<user>[^@]+)@(?P<host>.+)")
+        self._jabber_sender_re = re.compile("(?P<node>[^@]+)@(?P<domain>[^/]+)/(?P<resource>.+)")
        
         self.jjc = JircJabberClient(settings.JABBER_JID, password=settings.JABBER_PASSWORD, server=settings.JABBER_SERVER, port=getattr(settings, 'JABBER_PORT', 5222))
         self.jjc.set_handler(self.handler)
@@ -44,13 +53,19 @@ class Jirc(object):
             jid = self.jabber_channels.get(msg.subject, None)
             logging.info(jid)
             if jid is not None:
-                self.jjc.send_to_channel(jid, '<%s> %s' % (msg.sender, msg.body))
+                matches = self._irc_sender_re.match(msg.sender)
+                if matches:
+                    prefix = self.state.jabber_format % matches.groupdict()
+                    self.jjc.send_to_channel(jid, '%s%s' % (prefix, msg.body))
 
         if msg.what == 'JABBER_CHANNEL_MESSAGE':
             chan = self.irc_channels.get(msg.subject, None)
             logging.info(chan)
             if chan is not None:
-                self.jic.send_to_channel(chan, '<%s> %s' % (msg.sender, msg.body))
+                matches = self._jabber_sender_re.match(msg.sender)
+                if matches:
+                    prefix = self.state.irc_format % matches.groupdict()
+                    self.jic.send_to_channel(chan, '%s%s' % (prefix, msg.body))
 
         if msg.what == 'IRC_CONNECT':
             for channel in self.settings.CHANNELS:
@@ -62,4 +77,4 @@ class Jirc(object):
             for channel in self.settings.CHANNELS:
                 jid = channel['jabber']
                 self.irc_channels[jid] = channel['irc']
-                self.jjc.join_room(jid)
+                self.jjc.join_room(jid, nick=self.settings.get('JABBER_NICK', None))

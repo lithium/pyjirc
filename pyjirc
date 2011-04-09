@@ -3,6 +3,8 @@
 
 from jirc import Jirc
 
+from objdict import ObjDict
+
 import pprint
 import logging
 
@@ -12,12 +14,12 @@ logger.setLevel(logging.DEBUG)
 
 
 import local_settings
-
+settings = ObjDict(filter(lambda (k,v): k.isupper(), vars(local_settings).items()))
 
 
 if __name__ == '__main__':
 
-    jirc = Jirc(local_settings)
+    jirc = Jirc(settings)
     jirc.connect()
 
     running = True
