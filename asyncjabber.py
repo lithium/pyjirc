@@ -39,10 +39,10 @@ class AsyncJabberClient(JabberClient):
 
         handle_presence = getattr(self, 'handle_presence', None)
         if callable(handle_presence):
-            self.stream.set_presence_handler('subscribe', handle_presence)
-            self.stream.set_presence_handler('subscribed', handle_presence)
-            self.stream.set_presence_handler('unsubscribe', handle_presence)
-            self.stream.set_presence_handler('unsubscribed', handle_presence)
+            self.stream.set_presence_handler(None, handle_presence)
+            #self.stream.set_presence_handler('subscribed', handle_presence)
+            #self.stream.set_presence_handler('unsubscribe', handle_presence)
+            #self.stream.set_presence_handler('unsubscribed', handle_presence)
 
         handle_message = getattr(self, 'handle_message', None)
         if callable(handle_message):
@@ -55,8 +55,10 @@ class AsyncJabberClient(JabberClient):
 
 
     def handle_presence(self, stanza):
-        self.stream.send(stanza.make_accept_response())
-        return True
+        if stanza.get_type() in ('subscribe','subscribed','unsubscribe','unsubscribed'):
+            self.stream.send(stanza.make_accept_response())
+            return True
+        return False
 
     def handle_message(self, stanza):
         return True

@@ -60,7 +60,7 @@ class AsyncIrcClient(asynchat.async_chat):
         
         prefix, command, args = self._parse_msg(line)
 
-        logging.info(":AsyncIrc:IN: %s" % ((prefix,command,args),) )
+        logging.debug(":AsyncIrc:IN: %s" % ((prefix,command,args),) )
 
         handler = getattr(self, 'handle_%s' % (command.lower(),), None)
         if handler is not None and callable(handler):
@@ -69,7 +69,8 @@ class AsyncIrcClient(asynchat.async_chat):
 
     def output(self, *args):
         out = ' '.join(args)
-        logging.info(":AsyncIrc:OUT: %s" %(out,))
+        out = out.encode('ascii','xmlcharrefreplace')
+        logging.debug(":AsyncIrc:OUT: %s" %(out,))
         self.push(out+"\r\n")
 
     def tick(self, timeout=1):
@@ -82,6 +83,7 @@ class AsyncIrcClient(asynchat.async_chat):
         self.output("JOIN", channel)
 
     def _parse_msg(self,s):
+        s = s.strip()
         prefix = ''
         trailing = []
         if not s:

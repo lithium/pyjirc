@@ -20,12 +20,28 @@ class JircJabberClient(AsyncJabberClient, HasHandlerMixin):
         if self.handler:
             self.handler.post(Message('JABBER_CONNECT'))
 
+    def handle_presence(self, stanza):
+        if stanza.get_type() in ('subscribe','subscribed','unsubscribe','unsubscribed'):
+            self.stream.send(stanza.make_accept_response())
+            return True
+
+
+        sender = stanza.get_from()
+        to = stanza.get_to()
+
+        detail = dict((attr.name, attr.content) for attr in stanza.xpath_eval('user:x/user:item/@*', {'user': "http://jabber.org/protocol/muc#user"}))
+
+        self.handler.post(Message("JABBER_CHANNEL_USER", channel=sender.bare().as_utf8(), nick=sender.resource, sender=sender.as_utf8(), **detail))
+
+        #logging.info("PRESENCE from: %s  to: %s  (%s)" % (sender.as_utf8(), to.as_utf8(), detail))
+        #logging.info(stanza.serialize())
+
     def handle_message(self, stanza):
         subject = stanza.get_subject()
         body = stanza.get_body()
         sender = stanza.get_from()
 
-        logging.info("message: <%s> %s: %s " % (subject, body, sender.as_utf8()))
+        #logging.info(stanza.serialize())
 
         room = self.rooms.get(sender.bare(), None)
         if room is not None:
