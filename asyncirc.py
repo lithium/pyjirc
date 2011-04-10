@@ -2,31 +2,53 @@ import asyncore
 import asynchat
 import socket
 import StringIO
+import datetime
 
 import logging
 
 __all__ = ['AsyncIrcClient']
 
+
 class AsyncIrcClient(asynchat.async_chat):
 
-    def __init__(self, nick, user, host, port=6667, password=None):
+    def __init__(self):
         asynchat.async_chat.__init__(self)
-        self.nick = nick
-        self.user = user
-        self.host = host
-        self.port = port
-        self.password = password
         self.buffer = StringIO.StringIO()
 
-    def open(self):
+    def open(self, host, port=None):
+        self.host = host
+        self.port = port or 6667
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connect( (self.host, self.port) )
-        self.set_terminator("\r\n")
+        self.set_terminator("\n")
+
+    def connect_user(self, nick, password=None, username=None, info=None):
+        self.nick = nick
+        self.password = password
+        self.username = username or nick
+        self.info = info or "*"
 
         if self.password:
             self.output("PASS", self.password)
         self.output("NICK", self.nick)
-        self.output("USER", self.user, '*', '*', ':'+self.user)
+        self.output("USER", self.username, '*', '*', ':'+self.info)
+
+    def connect_server(self, servername, password, info=None, ts_supported=True):
+        self.servername = servername
+        self.password = password
+        self.info = info or servername
+        
+        self.output("PASS", self.password, ":TS" if ts_supported else "")
+        self.output("CAPAB", "SSJOIN", "NOQUIT", "NICKIP", "TSMODE" if ts_supported else "")
+        self.output("SERVER", servername, "1", ':'+self.info)
+        if ts_supported:
+            self.output("SVINFO", "5", "3", "0", ':'+self.TS)
+
+
+    @property
+    def TS(self):
+        return datetime.datetime.now().strftime('%s')
+        
 
     def collect_incoming_data(self, data):
         self.buffer.write(data)
@@ -38,7 +60,7 @@ class AsyncIrcClient(asynchat.async_chat):
         
         prefix, command, args = self._parse_msg(line)
 
-        logging.debug(":AsyncIrc:IN: %s" % ((prefix,command,args),) )
+        logging.info(":AsyncIrc:IN: %s" % ((prefix,command,args),) )
 
         handler = getattr(self, 'handle_%s' % (command.lower(),), None)
         if handler is not None and callable(handler):
@@ -47,7 +69,7 @@ class AsyncIrcClient(asynchat.async_chat):
 
     def output(self, *args):
         out = ' '.join(args)
-        logging.debug(":AsyncIrc:OUT: %s" %(out,))
+        logging.info(":AsyncIrc:OUT: %s" %(out,))
         self.push(out+"\r\n")
 
     def tick(self, timeout=1):

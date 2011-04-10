@@ -23,11 +23,10 @@ class Jirc(object):
         self._irc_sender_re = re.compile("(?P<nick>[^!]+)!(?P<user>[^@]+)@(?P<host>.+)")
         self._jabber_sender_re = re.compile("(?P<node>[^@]+)@(?P<domain>[^/]+)/(?P<resource>.+)")
        
-        self.jjc = JircJabberClient(settings.JABBER_JID, password=settings.JABBER_PASSWORD, server=settings.JABBER_SERVER, port=getattr(settings, 'JABBER_PORT', 5222))
+        self.jjc = JircJabberClient(settings.JABBER_JID, password=settings.JABBER_PASSWORD, server=settings.JABBER_SERVER, port=self.settings.get('JABBER_PORT', 5222))
         self.jjc.set_handler(self.handler)
 
-        self.jic = JircIrcClient(getattr(settings, 'IRC_NICK', 'jirc'), getattr(settings, 'IRC_USER', 'jirc'), 
-                settings.IRC_SERVER, port=getattr(settings, 'IRC_PORT', 6667))
+        self.jic = JircIrcClient()
         self.jic.set_handler(self.handler)
 
         self.jabber_channels = {}
@@ -35,7 +34,8 @@ class Jirc(object):
 
     def connect(self):
         self.jjc.connect()
-        self.jic.open()
+        self.jic.open(self.settings.IRC_SERVER, port=self.settings.get('IRC_PORT', 6667));
+        self.jic.connect_server(self.settings.IRC_SERVERNAME, self.settings.IRC_PASSWORD, info=self.settings.get('IRC_DESCRIPTION',None))
 
     def tick(self):
         self.jjc.tick()
