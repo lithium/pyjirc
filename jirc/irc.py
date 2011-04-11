@@ -9,6 +9,7 @@ class JircIrcClient(AsyncIrcClient, HasHandlerMixin):
         AsyncIrcClient.__init__(self)
         self.network_users = {}
         self.network_channels = {}
+        self.ping_count = 0
 
     def handle_privmsg(self, prefix, cmd, args):
         target = args[0]
@@ -19,9 +20,9 @@ class JircIrcClient(AsyncIrcClient, HasHandlerMixin):
         if self.handler:
             self.handler.post(Message("IRC_CHANNEL_MESSAGE", subject=target, sender=prefix, body=line))
 
-    def handle_266(self, prefix, cmd, args):
+    #def handle_266(self, prefix, cmd, args):
         #end of LUSERS command
-        self.handler.post(Message("IRC_CONNECT"))
+        #self.handler.post(Message("IRC_CONNECT"))
 
 
     def handle_nick(self, prefix, cmd, args):
@@ -57,7 +58,11 @@ class JircIrcClient(AsyncIrcClient, HasHandlerMixin):
             # ARGS = timestamp, channel
             self.network_channels[channel].members[prefix] = ''
 
-
+    def handle_ping(self, *args, **kwargs):
+        AsyncIrcClient.handle_ping(self, *args, **kwargs)
+        self.ping_count += 1
+        if self.ping_count >= 3:
+            self.handler.post(Message("IRC_CONNECT"))
 
     def introduce_nick(self, nick, username=None, hostname=None, info=None, mode="+i"):
         self.output(':'+self.servername, "NICK", nick, "1", self.TS, mode, username or nick, hostname or self.servername, self.servername, "0", "2130706433", ':'+(info or nick))

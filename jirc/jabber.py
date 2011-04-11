@@ -1,8 +1,9 @@
 
-from pyxmpp.all import JID, Presence
+from pyxmpp.all import JID, Presence, Iq, Message
 from pyxmpp.jabber.muc import MucRoomState, MucRoomManager, MucRoomHandler
-from asyncjabber import AsyncJabberClient
-from handler import HasHandlerMixin, Message
+#from asyncjabber import AsyncJabberClient
+from asyncjabbercomponent import AsyncJabberComponent
+from handler import HasHandlerMixin, Message as HandlerMessage
 import logging
 
 class JircRoomHandler(MucRoomHandler):
@@ -10,31 +11,56 @@ class JircRoomHandler(MucRoomHandler):
         self.jid = jid
         MucRoomHandler.__init__(self)
 
-class JircJabberClient(AsyncJabberClient, HasHandlerMixin):
-
+class JircJabberClient(AsyncJabberComponent, HasHandlerMixin):
     def handle_connect(self):
-        self.request_roster()
-        presence = Presence()
+        self.handler.post(HandlerMessage('JABBER_CONNECT'))
+
+    def join_room(self, room_jid, jid):
+        if not isinstance(room_jid, JID):
+            room_jid = JID(room_jid)
+        if not isinstance(jid, JID):
+            jid = JID(jid)
+
+        my_sender = JID(room_jid.bare().as_utf8()+'/'+jid.resource)
+        presence = Presence(from_jid=jid.bare(), to_jid=my_sender)
+        x = presence.xmlnode.newChild(None,'x',None)
+        x.newNs("http://jabber.org/protocol/muc", "muc")
+        history = x.newChild(None,"history",None)
+        history.setProp("maxchars","0")
+        self.stream.send(presence)
+        return my_sender
+
+    def part_room(self, room_jid, jid):
+        if not isinstance(room_jid, JID):
+            room_jid = JID(room_jid)
+        if not isinstance(jid, JID):
+            jid = JID(jid)
+        presence = Presence(from_jid=jid.bare(), to_jid=room_jid.bare().as_utf8()+'/'+jid.resource, stanza_type='unavailable')
         self.stream.send(presence)
 
-        if self.handler:
-            self.handler.post(Message('JABBER_CONNECT'))
+    def send_to_room(self, room_jid, jid, body):
+        if not isinstance(room_jid, JID):
+            room_jid = JID(room_jid)
+        if not isinstance(jid, JID):
+            jid = JID(jid)
+        msg = Message(from_jid=jid, to_jid=room_jid, body=body, stanza_type="groupchat")
+        self.stream.send(msg)
+
 
     def handle_presence(self, stanza):
+        #logging.info(stanza.serialize())
+
         if stanza.get_type() in ('subscribe','subscribed','unsubscribe','unsubscribed'):
             self.stream.send(stanza.make_accept_response())
             return True
-
 
         sender = stanza.get_from()
         to = stanza.get_to()
 
         detail = dict((attr.name, attr.content) for attr in stanza.xpath_eval('user:x/user:item/@*', {'user': "http://jabber.org/protocol/muc#user"}))
+        self.handler.post(HandlerMessage("JABBER_CHANNEL_USER", channel=sender.bare().as_utf8(), nick=sender.resource, sender=sender.as_utf8(), **detail))
+        return True
 
-        self.handler.post(Message("JABBER_CHANNEL_USER", channel=sender.bare().as_utf8(), nick=sender.resource, sender=sender.as_utf8(), **detail))
-
-        #logging.info("PRESENCE from: %s  to: %s  (%s)" % (sender.as_utf8(), to.as_utf8(), detail))
-        #logging.info(stanza.serialize())
 
     def handle_message(self, stanza):
         subject = stanza.get_subject()
@@ -43,16 +69,8 @@ class JircJabberClient(AsyncJabberClient, HasHandlerMixin):
 
         #logging.info(stanza.serialize())
 
-        room = self.rooms.get(sender.bare(), None)
-        if room is not None:
-            if room.get_nick() != sender.resource:
-                self.handler.post(Message("JABBER_CHANNEL_MESSAGE", subject=room.room_jid.bare().as_utf8(), body=body, sender=sender.as_utf8()))
+        if not stanza.xpath_eval('delay:x', {'delay': 'jabber:x:delay'}):
+            self.handler.post(HandlerMessage("JABBER_CHANNEL_MESSAGE", subject=sender.bare().as_utf8(), body=body, sender=sender.as_utf8()))
         return True
 
 
-    def send_to_channel(self, jid, message):
-        if not isinstance(jid, JID):
-            jid = JID(jid)
-        room = self.rooms.get(jid.bare(), None)
-        if room is not None:
-            room.send_message(message)
