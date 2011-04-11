@@ -20,11 +20,6 @@ class JircIrcClient(AsyncIrcClient, HasHandlerMixin):
         if self.handler:
             self.handler.post(Message("IRC_CHANNEL_MESSAGE", subject=target, sender=prefix, body=line))
 
-    #def handle_266(self, prefix, cmd, args):
-        #end of LUSERS command
-        #self.handler.post(Message("IRC_CONNECT"))
-
-
     def handle_nick(self, prefix, cmd, args):
         nick = args[0]
         if prefix:
@@ -67,6 +62,9 @@ class JircIrcClient(AsyncIrcClient, HasHandlerMixin):
     def introduce_nick(self, nick, username=None, hostname=None, info=None, mode="+i"):
         self.output(':'+self.servername, "NICK", nick, "1", self.TS, mode, username or nick, hostname or self.servername, self.servername, "0", "2130706433", ':'+(info or nick))
 
+    def quit_nick(self, nick, reason=None):
+        self.output(':'+nick, 'QUIT', ':'+(reason or ""))
+
     def join_channel(self, nick, channel):
         self.output(':'+nick, "SJOIN", self.TS, channel)
 
@@ -74,7 +72,7 @@ class JircIrcClient(AsyncIrcClient, HasHandlerMixin):
         self.output(':'+prefix, "PRIVMSG", channel, ':'+message)
 
 
-    def unique_nick(self, nick, suffix='_xmpp'):
+    def unique_nick(self, nick, suffix='_'):
         if nick not in self.network_users.keys():
             return nick
         nick += suffix

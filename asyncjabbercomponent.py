@@ -41,6 +41,10 @@ class AsyncJabberComponent(Component):
         if callable(handle_presence):
             self.stream.set_presence_handler(None, handle_presence)
 
+        handle_error = getattr(self, 'handle_error', None)
+        if callable(handle_error):
+            self.stream.set_presence_handler("error", handle_error)
+
         handle_message = getattr(self, 'handle_message', None)
         if callable(handle_message):
             self.stream.set_message_handler('normal', handle_message)

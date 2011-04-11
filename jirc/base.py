@@ -54,6 +54,9 @@ class Jirc(object):
         for nick, data in self.jabber_users.items():
             self.jjc.part_room(data.room_jid, data.jid)
 
+        for jid, data in self.irc_users.items():
+            self.jic.quit_nick(data.irc_nick)
+
         self.jjc.disconnect()
         self.jic.disconnect()
 
@@ -104,4 +107,11 @@ class Jirc(object):
                                                      xmpp_nick=msg.nick, role=msg.role, affiliation=msg.affiliation)
                 self.jic.introduce_nick(irc_nick, username=jid['node'], hostname=jid['domain'], info=jid['resource'])
                 self.jic.join_channel(irc_nick, channel) 
-        
+       
+        elif msg.what == 'JABBER_NICK_CONFLICT':
+            msg.sender
+            for nick,jabber_user in self.jabber_users.items():
+                if msg.sender == jabber_user.sender.as_utf8():
+                    nick = jabber_user.sender.resource + '_'
+                    jabber_user.sender = self.jjc.join_room(jabber_user.room_jid, jabber_user.jid, nick=nick)
+                    break
