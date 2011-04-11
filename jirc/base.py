@@ -61,13 +61,16 @@ class Jirc(object):
         self.jic.disconnect()
 
 
+    def _create_jabber_user(self, nick, channel):
+        jid = JID(nick, domain=self.settings.JABBER_JID, resource=nick)
+        sender = self.jjc.join_room(channel, jid)
+        self.jabber_users[nick] = ObjDict(jid=jid, sender=sender, room_jid=channel)
+
     def _fully_connected(self):
         for channel in self.settings.CHANNELS:
             irc_chan = self.jic.network_channels[channel['irc']]
             for nick in irc_chan.members.keys():
-                jid = JID(nick, domain=self.settings.JABBER_JID, resource=nick)
-                sender = self.jjc.join_room(channel['jabber'], jid)
-                self.jabber_users[nick] = ObjDict(jid=jid, sender=sender, room_jid=channel['jabber'])
+                self._create_jabber_user(nick, channel['jabber'])
 
     def handle_message(self, msg):
         logging.info(msg)
@@ -75,6 +78,7 @@ class Jirc(object):
             self.irc_connected = True
             if self.jabber_connected:
                 self._fully_connected()
+
         elif msg.what == 'JABBER_CONNECT':
             self.jabber_connected = True
             if self.irc_connected:
@@ -94,15 +98,15 @@ class Jirc(object):
                 if irc_user:
                     self.jic.send_to_channel(irc_user.irc_nick, irc_user.irc_channel, msg.body)
 
-        elif msg.what == 'JABBER_CHANNEL_USER':
+        elif msg.what == 'JABBER_CHANNEL_JOIN':
             irc_nick = self.jic.unique_nick(msg.nick)
 
             jid = getattr(msg, 'jid', '%s@%s/%s' % (msg.nick, self.settings.JABBER_JID, irc_nick))
             jid = self._jid_re.match(jid).groupdict()
             channel = self._jid_re.match(msg.channel).groupdict()['node']
 
-            if JID(msg.sender) not in [j.sender for j in self.jabber_users.values()]:
-                # dont create IRC users for our own jabber users presence stanzas
+            if JID(msg.sender) not in [j.sender for j in self.jabber_users.values()] and msg.sender not in self.irc_users:
+                # dont create IRC users for our own jabber users presence stanzas or for users weve already created
                 self.irc_users[msg.sender] = ObjDict(jid=jid, irc_nick=irc_nick, irc_channel=channel, 
                                                      xmpp_nick=msg.nick, role=msg.role, affiliation=msg.affiliation)
                 self.jic.introduce_nick(irc_nick, username=jid['node'], hostname=jid['domain'], info=jid['resource'])
@@ -115,3 +119,19 @@ class Jirc(object):
                     nick = jabber_user.sender.resource + '_'
                     jabber_user.sender = self.jjc.join_room(jabber_user.room_jid, jabber_user.jid, nick=nick)
                     break
+
+        elif msg.what == 'JABBER_CHANNEL_PART':
+            irc_user = self.irc_users.get(msg.sender, None) 
+            if irc_user:
+                self.jic.part_channel(irc_user.irc_nick, irc_user.irc_channel)
+                self.jic.quit_nick(irc_user.irc_nick)
+                del self.irc_users[msg.sender]
+
+        elif msg.what == 'IRC_CHANNEL_JOIN':
+            self._create_jabber_user(msg.sender, self.jabber_channels[msg.channel])
+
+        elif msg.what == 'IRC_CHANNEL_PART':
+            jabber_user = self.jabber_users.get(msg.sender, None)
+            if jabber_user:
+                self.jjc.part_room(jabber_user.room_jid, jabber_user.jid)
+                del self.jabber_users[msg.sender]

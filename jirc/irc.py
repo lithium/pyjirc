@@ -52,6 +52,12 @@ class JircIrcClient(AsyncIrcClient, HasHandlerMixin):
             #user join channel
             # ARGS = timestamp, channel
             self.network_channels[channel].members[prefix] = ''
+            self.handler.post(Message("IRC_CHANNEL_JOIN", channel=channel, sender=prefix))
+
+    def handle_part(self, prefix, cmd, args):
+        self.handler.post(Message("IRC_CHANNEL_PART", channel=args[0], sender=prefix))
+        
+
 
     def handle_ping(self, *args, **kwargs):
         AsyncIrcClient.handle_ping(self, *args, **kwargs)
@@ -67,6 +73,9 @@ class JircIrcClient(AsyncIrcClient, HasHandlerMixin):
 
     def join_channel(self, nick, channel):
         self.output(':'+nick, "SJOIN", self.TS, channel)
+
+    def part_channel(self, nick, channel):
+        self.output(':'+nick, "PART", channel)
 
     def send_to_channel(self, prefix, channel, message):
         self.output(':'+prefix, "PRIVMSG", channel, ':'+message)

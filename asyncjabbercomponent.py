@@ -39,7 +39,15 @@ class AsyncJabberComponent(Component):
 
         handle_presence = getattr(self, 'handle_presence', None)
         if callable(handle_presence):
-            self.stream.set_presence_handler(None, handle_presence)
+            self.stream.set_presence_handler("available", handle_presence)
+            self.stream.set_presence_handler("unavailable", handle_presence)
+
+        handle_subscribe = getattr(self, 'handle_subscribe', None)
+        if callable(handle_subscribe):
+            self.stream.set_presence_handler("subscribe", handle_subscribe)
+            self.stream.set_presence_handler("subscribed", handle_subscribe)
+            self.stream.set_presence_handler("unsubscribe", handle_subscribe)
+            self.stream.set_presence_handler("unsubscribed", handle_subscribe)
 
         handle_error = getattr(self, 'handle_error', None)
         if callable(handle_error):

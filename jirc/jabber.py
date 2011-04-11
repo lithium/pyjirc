@@ -48,14 +48,20 @@ class JircJabberClient(AsyncJabberComponent, HasHandlerMixin):
     def handle_presence(self, stanza):
         sender = stanza.get_from()
         to = stanza.get_to()
+        stanza_type = stanza.get_type()
 
+        if stanza.get_type() == 'unavailable':
+            self.handler.post(HandlerMessage("JABBER_CHANNEL_PART", channel=sender.bare().as_utf8(), nick=sender.resource, sender=sender.as_utf8()))
+            return True
+            
+        detail = dict((attr.name, attr.content) for attr in stanza.xpath_eval('user:x/user:item/@*', {'user': "http://jabber.org/protocol/muc#user"}))
+        self.handler.post(HandlerMessage("JABBER_CHANNEL_JOIN", channel=sender.bare().as_utf8(), nick=sender.resource, sender=sender.as_utf8(), **detail))
+        return True
+
+    def handle_subscribe(self, stanza):
         if stanza.get_type() in ('subscribe','subscribed','unsubscribe','unsubscribed'):
             self.stream.send(stanza.make_accept_response())
             return True
-
-        detail = dict((attr.name, attr.content) for attr in stanza.xpath_eval('user:x/user:item/@*', {'user': "http://jabber.org/protocol/muc#user"}))
-        self.handler.post(HandlerMessage("JABBER_CHANNEL_USER", channel=sender.bare().as_utf8(), nick=sender.resource, sender=sender.as_utf8(), **detail))
-        return True
 
     def handle_error(self, stanza):
         if stanza.xpath_eval('a:error/b:conflict', {'a':"http://pyxmpp.jajcus.net/xmlns/common", 'b':"urn:ietf:params:xml:ns:xmpp-stanzas"}):
