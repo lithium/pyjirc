@@ -1,6 +1,6 @@
 
 from pyxmpp.all import JID, Presence, Iq, Message
-from pyxmpp.jabber.muc import MucRoomState, MucRoomManager, MucRoomHandler
+from pyxmpp.jabber.muc import MucRoomState, MucRoomManager, MucRoomHandler, MucPresence
 #from asyncjabber import AsyncJabberClient
 from asyncjabbercomponent import AsyncJabberComponent
 from handler import HasHandlerMixin, Message as HandlerMessage
@@ -20,14 +20,10 @@ class JircJabberClient(AsyncJabberComponent, HasHandlerMixin):
             room_jid = JID(room_jid)
         if not isinstance(jid, JID):
             jid = JID(jid)
-
-        my_sender = JID(room_jid.bare().as_utf8()+'/'+jid.resource)
-        presence = Presence(from_jid=jid.bare(), to_jid=my_sender)
-        x = presence.xmlnode.newChild(None,'x',None)
-        x.newNs("http://jabber.org/protocol/muc", "muc")
-        history = x.newChild(None,"history",None)
-        history.setProp("maxchars","0")
-        self.stream.send(presence)
+        my_sender = JID(room_jid.node, room_jid.domain, jid.resource)
+        p = MucPresence(from_jid=jid.bare(), to_jid=my_sender)
+        p.make_join_request(history_maxchars=0)
+        self.stream.send(p)
         return my_sender
 
     def part_room(self, room_jid, jid):
@@ -35,7 +31,7 @@ class JircJabberClient(AsyncJabberComponent, HasHandlerMixin):
             room_jid = JID(room_jid)
         if not isinstance(jid, JID):
             jid = JID(jid)
-        presence = Presence(from_jid=jid.bare(), to_jid=room_jid.bare().as_utf8()+'/'+jid.resource, stanza_type='unavailable')
+        presence = MucPresence(from_jid=jid.bare(), to_jid=room_jid.bare(),stanza_type='unavailable')
         self.stream.send(presence)
 
     def send_to_room(self, room_jid, jid, body):
@@ -43,7 +39,7 @@ class JircJabberClient(AsyncJabberComponent, HasHandlerMixin):
             room_jid = JID(room_jid)
         if not isinstance(jid, JID):
             jid = JID(jid)
-        msg = Message(from_jid=jid, to_jid=room_jid, body=body, stanza_type="groupchat")
+        msg = Message(from_jid=jid.bare(), to_jid=room_jid.bare(), body=body, stanza_type="groupchat")
         self.stream.send(msg)
 
 

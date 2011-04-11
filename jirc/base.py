@@ -98,7 +98,6 @@ class Jirc(object):
             jid = self._jid_re.match(jid).groupdict()
             channel = self._jid_re.match(msg.channel).groupdict()['node']
 
-
             if JID(msg.sender) not in [j.sender for j in self.jabber_users.values()]:
                 # dont create IRC users for our own jabber users presence stanzas
                 self.irc_users[msg.sender] = ObjDict(jid=jid, irc_nick=irc_nick, irc_channel=channel, 
