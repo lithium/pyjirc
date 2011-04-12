@@ -7,6 +7,7 @@ from handler import Handler, Message
 
 from objdict import ObjDict
 import re
+import gevent
 
 import logging
 
@@ -38,17 +39,36 @@ class Jirc(object):
             self.jabber_channels[channel['irc']] = channel['jabber']
             self.irc_channels[channel['jabber']] = channel['irc']
 
-
-    def connect(self):
-        self.jjc.connect()
+    def _irc_connect(self):
         self.jic.open(self.settings.IRC_SERVER, port=self.settings.get('IRC_PORT', 6667));
         self.jic.connect_server(self.settings.IRC_SERVERNAME, self.settings.IRC_PASSWORD, info=self.settings.get('IRC_DESCRIPTION',None))
 
-    def tick(self):
-        self.jjc.tick()
-        self.jic.tick()
-        self.handler.tick(block=False)
-        return True
+    def _jabber_connect(self):
+        self.jjc.connect()
+
+#    def _irc_thread_(self):
+#        self._irc_connect()
+#        while True:
+#            self.jic.tick()
+#
+#    def _jabber_thread_(self):
+#        self._jabber_connect()
+#        while True:
+#            self.jjc.tick()
+
+    def loop(self):
+#        gevent.spawn(self._irc_thread_)
+#        gevent.spawn(self._jabber_thread_)
+#        self.running = True
+#        while self.running:
+#            self.handler.tick(block=True)
+        self._irc_connect()
+        self._jabber_connect()
+        self.running = True
+        while self.running:
+            self.jjc.tick()
+            self.jic.tick()
+            self.handler.tick(block=False)
 
     def disconnect(self):
         for nick, data in self.jabber_users.items():

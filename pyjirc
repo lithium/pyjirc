@@ -20,12 +20,9 @@ settings = ObjDict(filter(lambda (k,v): k.isupper(), vars(local_settings).items(
 if __name__ == '__main__':
 
     jirc = Jirc(settings)
-    jirc.connect()
 
-    running = True
     try:
-        while running:
-            running = jirc.tick()
+        jirc.loop()
     except KeyboardInterrupt:
         pass
 
