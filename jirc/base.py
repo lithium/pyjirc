@@ -46,29 +46,22 @@ class Jirc(object):
     def _jabber_connect(self):
         self.jjc.connect()
 
-#    def _irc_thread_(self):
-#        self._irc_connect()
-#        while True:
-#            self.jic.tick()
-#
-#    def _jabber_thread_(self):
-#        self._jabber_connect()
-#        while True:
-#            self.jjc.tick()
+    def _irc_thread_(self):
+        self._irc_connect()
+        while True:
+            self.jic.tick()
+
+    def _jabber_thread_(self):
+        self._jabber_connect()
+        while True:
+            self.jjc.tick()
 
     def loop(self):
-#        gevent.spawn(self._irc_thread_)
-#        gevent.spawn(self._jabber_thread_)
-#        self.running = True
-#        while self.running:
-#            self.handler.tick(block=True)
-        self._irc_connect()
-        self._jabber_connect()
+        gevent.spawn(self._irc_thread_)
+        gevent.spawn(self._jabber_thread_)
         self.running = True
         while self.running:
-            self.jjc.tick()
-            self.jic.tick()
-            self.handler.tick(block=False)
+            self.handler.tick(block=True)
 
     def disconnect(self):
         for nick, data in self.jabber_users.items():
