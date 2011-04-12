@@ -4,6 +4,7 @@ from pyxmpp.jabber.muc import MucRoomState, MucRoomManager, MucRoomHandler, MucP
 #from asyncjabber import AsyncJabberClient
 from asyncjabbercomponent import AsyncJabberComponent
 from handler import HasHandlerMixin, Message as HandlerMessage
+from hashlib import md5
 import logging
 
 class JircRoomHandler(MucRoomHandler):
@@ -14,6 +15,8 @@ class JircRoomHandler(MucRoomHandler):
 class JircJabberClient(AsyncJabberComponent, HasHandlerMixin):
     def handle_connect(self):
         self.handler.post(HandlerMessage('JABBER_CONNECT'))
+
+        self.dup_msgs = {}
 
     def join_room(self, room_jid, jid, nick=None):
         if not isinstance(room_jid, JID):
@@ -77,7 +80,16 @@ class JircJabberClient(AsyncJabberComponent, HasHandlerMixin):
         #logging.info(stanza.serialize())
 
         if not stanza.xpath_eval('delay:x', {'delay': 'jabber:x:delay'}):
-            self.handler.post(HandlerMessage("JABBER_CHANNEL_MESSAGE", subject=sender.bare().as_utf8(), body=body, sender=sender.as_utf8()))
+            msg = HandlerMessage("JABBER_CHANNEL_MESSAGE", subject=sender.bare().as_utf8(), body=body, sender=sender.as_utf8())
+            msgid = stanza.xpath_eval("@id")
+            if msgid and len(msgid) > 0:
+                msgid = msgid[0].content
+            if msgid not in self.dup_msgs:
+                self.dup_msgs[msgid] = True
+                self.handler.post(msg)
+
         return True
+
+
 
 
