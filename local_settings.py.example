@@ -1,15 +1,20 @@
 
 
-
-JABBER_JID="user@jabber.org/daemon"
-JABBER_PASSWORD=""
-JABBER_SERVER="jabber.org"
-JABBER_PORT=5222
-JABBER_MUC="test2342342@conference.jabber.org"
+JABBER_JID="irc.example.com"
+JABBER_PORT=5554
+JABBER_PASSWORD="secret"
+JABBER_SERVER="example.com"
 
 
-IRC_NICK="jirc"
-IRC_USER="jirc"
-IRC_SERVER="irc.freenode.net"
-IRC_PORT=6667
-IRC_CHANNEL="#test2342342"
+
+
+IRC_SERVER="example.com"
+IRC_PORT=7029
+IRC_PASSWORD="secret"
+IRC_SERVERNAME="chat.example.com"
+IRC_DESCRIPTION="jabber bridge"
+
+
+CHANNELS = (
+    {'jabber':'#channel@chat.example.com', 'irc':'#channel'},
+)
