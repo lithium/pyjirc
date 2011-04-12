@@ -84,6 +84,8 @@ class JircJabberClient(AsyncJabberComponent, HasHandlerMixin):
             msgid = stanza.xpath_eval("@id")
             if msgid and len(msgid) > 0:
                 msgid = msgid[0].content
+            else:
+                msgid = None
             if msgid not in self.dup_msgs:
                 self.dup_msgs[msgid] = True
                 self.handler.post(msg)

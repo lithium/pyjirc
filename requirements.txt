@@ -1,0 +1,6 @@
+distribute==0.6.15
+gevent==0.13.4
+greenlet==0.3.1
+pyxmpp==1.1.1
+wsgiref==0.1.2
+dnspython==1.9.4

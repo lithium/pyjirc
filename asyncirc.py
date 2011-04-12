@@ -62,6 +62,10 @@ class AsyncIrcClient(asynchat.async_chat):
 
         logging.debug(":AsyncIrc:IN: %s" % ((prefix,command,args),) )
 
+        if command.lower() == 'error':
+            command = 'irc_error'
+
+
         handler = getattr(self, 'handle_%s' % (command.lower(),), None)
         if handler is not None and callable(handler):
             handler(prefix, command, args)
