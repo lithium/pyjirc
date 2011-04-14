@@ -11,6 +11,7 @@ from objdict import ObjDict
 
 import pprint
 import logging
+import signal
 
 logger = logging.getLogger()
 logger.addHandler(logging.StreamHandler())
@@ -21,13 +22,24 @@ import local_settings
 settings = ObjDict(filter(lambda (k,v): k.isupper(), vars(local_settings).items()))
 
 
-if __name__ == '__main__':
+
+def main():
+    signal.signal(signal.SIGABRT, shutdown)
 
     jirc = Jirc(settings)
-
     try:
         jirc.loop()
-    except KeyboardInterrupt:
+    except:
         pass
 
+    shutdown()
+   
+
+def shutdown(sig=None, frame=None):
     jirc.disconnect()
+
+
+
+if __name__ == '__main__':
+    main()
+
