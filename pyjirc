@@ -9,9 +9,9 @@ from jirc import Jirc
 
 from objdict import ObjDict
 
-import pprint
 import logging
 import signal
+import sys
 
 logger = logging.getLogger()
 logger.addHandler(logging.StreamHandler())
@@ -19,16 +19,20 @@ logger.setLevel(logging.DEBUG)
 
 
 import local_settings
-settings = ObjDict(filter(lambda (k,v): k.isupper(), vars(local_settings).items()))
 
-
+_settings = ObjDict(filter(lambda (k,v): k.isupper(), vars(local_settings).items()))
+_jirc = Jirc(_settings)
 
 def main():
     signal.signal(signal.SIGABRT, shutdown)
+    signal.signal(signal.SIGFPE, shutdown)
+    signal.signal(signal.SIGILL, shutdown)
+    signal.signal(signal.SIGINT, shutdown)
+    signal.signal(signal.SIGSEGV, shutdown)
+    signal.signal(signal.SIGTERM, shutdown) 
 
-    jirc = Jirc(settings)
     try:
-        jirc.loop()
+        _jirc.loop()
     except:
         pass
 
@@ -36,7 +40,9 @@ def main():
    
 
 def shutdown(sig=None, frame=None):
-    jirc.disconnect()
+    print "*** Shutdown *** signal:%s" % (sig,)
+    _jirc.disconnect()
+    sys.exit()
 
 
 

@@ -88,3 +88,6 @@ class JircIrcClient(AsyncIrcClient, HasHandlerMixin):
         while nick in self.network_users.keys():
             nick += '_'
         return nick
+
+    def disconnect(self):
+        self.close();

@@ -34,6 +34,8 @@ class Jirc(object):
         self.irc_connected = False
         self.jabber_connected = False
 
+        self.greenlets = []
+
 
         for channel in self.settings.CHANNELS:
             self.jabber_channels[channel['irc']] = channel['jabber']
@@ -57,11 +59,11 @@ class Jirc(object):
             self.jjc.tick()
 
     def loop(self):
-        gevent.spawn(self._irc_thread_)
-        gevent.spawn(self._jabber_thread_)
+        self.greenlets.append( gevent.spawn(self._irc_thread_) )
+        self.greenlets.append( gevent.spawn(self._jabber_thread_) ) 
         self.running = True
         while self.running:
-            self.handler.tick(block=True)
+            self.handler.tick(block=True, timeout=6)
 
     def disconnect(self):
         for nick, data in self.jabber_users.items():
@@ -72,6 +74,9 @@ class Jirc(object):
 
         self.jjc.disconnect()
         self.jic.disconnect()
+
+        [g.kill() for g in self.greenlets]
+        gevent.shutdown()
 
 
     def _create_jabber_user(self, nick, channel):
